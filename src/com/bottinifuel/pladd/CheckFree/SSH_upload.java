@@ -219,7 +219,10 @@ public class SSH_upload extends JDialog
 
         FileName = new JTextField();
         FileName.setColumns(30);
-        FileName.setText("CHECKFREE.ASC");
+        if (cf.getFileType().equals(FileTypes.METAVANTE))
+        	FileName.setText("METAVANTE.ASC");
+        else 	
+           FileName.setText("CHECKFREE.ASC");
         final GridBagConstraints gridBagConstraints_10 = new GridBagConstraints();
         gridBagConstraints_10.fill = GridBagConstraints.HORIZONTAL;
         gridBagConstraints_10.weightx = 1;

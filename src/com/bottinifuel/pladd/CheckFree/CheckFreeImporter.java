@@ -2,6 +2,13 @@
  * Created on Jan 24, 2006 by pladd
  *
  */
+/************************************************************************
+* Change Log:
+* 
+*   Date         Description                                        Pgmr
+*  ------------  ------------------------------------------------   -----
+*  Apr 12,2013   Version 2 Added Metavante csv file.                carlonc 
+*************************************************************************/
 package com.bottinifuel.pladd.CheckFree;
 
 import java.awt.BorderLayout;
@@ -39,6 +46,7 @@ import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.bottinifuel.pladd.CheckFree.LineItem.DropException;
+import com.bottinifuel.pladd.CheckFree.MetavanteConversion.ReversalException;
 
 /**
  * Program to import a CheckFree CSV file and export ADD Energy BANKPOST file
@@ -71,7 +79,9 @@ public class CheckFreeImporter extends JFrame implements ActionListener
     private JButton RunButton;
 
     private static String CheckFreeDirectory;
-
+    private        String fileType = "";
+    private static String version  = "v2.0"; 
+    		
     private JFileChooser FileChooser;
 
     private boolean InputChosen  = false;
@@ -86,14 +96,14 @@ public class CheckFreeImporter extends JFrame implements ActionListener
     
     public CheckFreeImporter() throws Exception
     {
-        super ("CheckFree Importer");
+        super ("CheckFreee Importer "+version);
         setDefaultCloseOperation(EXIT_ON_CLOSE);        
 
         if (System.getProperty("os.name").compareTo("Linux") == 0)
             CheckFreeDirectory = "/share/Accounts Receivable/CheckFree";
         else
             CheckFreeDirectory = "S:/Accounts Receivable/CheckFree";
-        
+       
         FileChooser = new JFileChooser(CheckFreeDirectory);
 
         JPanel contents = new JPanel();
@@ -232,12 +242,13 @@ public class CheckFreeImporter extends JFrame implements ActionListener
     
     protected static boolean VerifyHeader(String [] expected, String [] header)
     {
-        if (header.length != expected.length)
+    	if (header.length != expected.length)
             return false;
         for (int i = 0; i < expected.length; i++)
         {
-            if (expected[i].compareTo(header[i]) != 0)
-                return false;
+            if (expected[i].compareTo(header[i]) != 0) {
+            	return false;
+            }    
         }
         return true;
     }
@@ -249,9 +260,10 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      * @throws Exception
      * @param Implicit: KnownAccounts
      */
-    private void ReadAccounts() throws Exception
+    @SuppressWarnings("resource")
+	private void ReadAccounts() throws Exception
     {
-        Accounts = new Hashtable<Integer, String>();
+    	Accounts = new Hashtable<Integer, String>();
         CSVReader reader;
         String [] nextLine;
         int lineNumber;
@@ -270,6 +282,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
                 Accounts.put(new Integer(nextLine[0]), nextLine[1]);
             }
         }
+        reader.close();
     }
 
     
@@ -279,9 +292,10 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      * @throws Exception
      * @param Implicit: CorrectionsFile
      */
-    private void ReadCorrections() throws Exception
+    @SuppressWarnings("resource")
+	private void ReadCorrections() throws Exception
     {
-        Corrections = new Hashtable<String, Correction>();
+    	Corrections = new Hashtable<String, Correction>();
         CSVReader reader;
         String [] nextLine;
         int lineNumber;
@@ -300,6 +314,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
                 Corrections.put(nextLine[1], new Correction(nextLine, lineNumber));
             }
         }
+        reader.close();
     }
 
 
@@ -307,9 +322,10 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      * Read import items from CSVimport file
      * @throws Exception
      */
-    private void ReadImports() throws Exception
+    @SuppressWarnings("resource")
+	private void ReadImports() throws Exception
     {
-        Items = new Vector<LineItem>();
+    	Items = new Vector<LineItem>();
         CSVReader reader;
         String [] nextLine;
         int lineNumber;
@@ -319,27 +335,48 @@ public class CheckFreeImporter extends JFrame implements ActionListener
         
         lineNumber = 0;
         while ((nextLine = reader.readNext()) != null) {
-            lineNumber++;
+        	lineNumber++;
             if (lineNumber == 1)
             {
-                if (!LineItem.VerifyImportFormat(nextLine))
-                    throw new Exception("Import format mismatch!");
+            	if (fileType.equals(FileTypes.CHECKFREE)) {
+                   if (!LineItem.VerifyImportFormat(nextLine))
+                       throw new Exception(FileTypes.CHECKFREE+" import format mismatch!");
+            	}
+            	else if (fileType.equals(FileTypes.METAVANTE)) {
+            	   if (!MetavanteConversion.VerifyImportFormat(nextLine))
+                       throw new Exception(FileTypes.METAVANTE+" import format mismatch!");
+            	}
             }
             else
             {
-                try {
-                    LineItem i = new LineItem(nextLine, lineNumber, this);
-                    Items.add(i);
-                    if (i.Corrected) correctedCount++;
-                    if (i.AutoCorrected) autoCorrectedCount++;
+            	try {
+                	LineItem i = null;
+                	if (fileType.equals(FileTypes.CHECKFREE)) {
+                       i = new LineItem(nextLine, lineNumber, this);
+                       Items.add(i);
+                       if (i.Corrected) correctedCount++;
+                   	   if (i.AutoCorrected) autoCorrectedCount++;
+                	}
+                    else if ((fileType.equals(FileTypes.METAVANTE) && (nextLine[0].toUpperCase().indexOf("TOTAL")==-1))) {
+                       MetavanteConversion mc = new MetavanteConversion(nextLine, lineNumber, CSVimport.getAbsolutePath());	
+                       i = new LineItem(mc.getLineItem(), lineNumber, this);
+                       Items.add(i);
+                       if (i.Corrected) correctedCount++;
+                   	   if (i.AutoCorrected) autoCorrectedCount++;
+                   	}
+                	
                 }
                 catch (DropException d)
                 {
-                    JOptionPane.showMessageDialog(this, d.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                	JOptionPane.showMessageDialog(this, d.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            	catch (ReversalException r)
+                {
+                	JOptionPane.showMessageDialog(this, r.toString(), "Payment Reversal Warning", JOptionPane.WARNING_MESSAGE);
                 }
             }
         }
-        System.out.println("Successfully imported " + lineNumber + " lines containing " + Items.size() + " items.");
+        reader.close();
     }
 
 
@@ -349,14 +386,14 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     private void LocateNewAccounts() throws Exception
     {
-        Iterator<LineItem> iter = Items.iterator();
+    	Iterator<LineItem> iter = Items.iterator();
         for (LineItem i = iter.next();
              i != null;
              i = iter.hasNext() ? iter.next() : null)
         {
-            if (!Accounts.containsKey(i.getCustAcctNum()))
+        	if (!Accounts.containsKey(i.getCustAcctNum()))
             {
-                CorrectionDialog cd = new CorrectionDialog(this, i, true);
+            	CorrectionDialog cd = new CorrectionDialog(this, i, true);
                 cd.setVisible(true);
 
                 if (cd.isStop())
@@ -396,7 +433,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     private void FilterOutUnsupported() throws Exception
     {
-        Iterator<LineItem> iter = Items.iterator();
+    	Iterator<LineItem> iter = Items.iterator();
         for (LineItem i = iter.next();
              i != null;
              i = iter.hasNext() ? iter.next() : null)
@@ -420,7 +457,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     private void ExportItems() throws IOException, Exception
     {
-        FileWriter out = new FileWriter(OutFileName.getText());
+    	FileWriter out = new FileWriter(OutFileName.getText());
         int count = 0;
         double total = 0;
 
@@ -469,7 +506,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     private void ExportCorrections() throws IOException
     {
-        FileWriter w = new FileWriter(CorrectFileName.getText());
+    	FileWriter w = new FileWriter(CorrectFileName.getText());
         CSVWriter cf = new CSVWriter(w);
 
         cf.writeNext(Correction.CorrectionHeader);
@@ -488,7 +525,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     private void ExportKnownAccounts() throws IOException
     {
-        FileWriter w = new FileWriter(AcctFileName.getText());
+    	FileWriter w = new FileWriter(AcctFileName.getText());
         CSVWriter af = new CSVWriter(w);
 
         String line[] = new String[2];
@@ -510,13 +547,12 @@ public class CheckFreeImporter extends JFrame implements ActionListener
     public void actionPerformed(ActionEvent e)
     {
         String event = e.getActionCommand();
-
         if (event.equals("close"))
             System.exit(0);        
         else if (event.equals("run"))
         {
             try {
-                ReadAccounts();
+                ReadAccounts(); 
                 ReadCorrections();
                 ReadImports();
                 LocateNewAccounts();
@@ -551,11 +587,21 @@ public class CheckFreeImporter extends JFrame implements ActionListener
             }
         }
         else if (event.equals("inputf"))
-        {
+        { 
+        	OutputChosen = false; // reset
             if (FileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
             {
                 CSVimport = FileChooser.getSelectedFile();
                 InFileName.setText(CSVimport.getAbsolutePath());
+                
+                fileType = (String)JOptionPane.showInputDialog(
+                                    this,
+                                    "Select the import file type",
+                                    "Customized Dialog",
+                                    JOptionPane.PLAIN_MESSAGE,
+                                    null,
+                                    FileTypes.getFileTypes(),
+                                    FileTypes.CHECKFREE);
 
                 if (!OutputChosen)
                 {
@@ -594,7 +640,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     public static void main(String[] args)
     {
-        try {
+    	try {
         	@SuppressWarnings("unused")
         	CheckFreeImporter cfi = new CheckFreeImporter(); 
         }
@@ -611,5 +657,13 @@ public class CheckFreeImporter extends JFrame implements ActionListener
     public String getDirectory()
     {
         return CheckFreeDirectory;
+    }
+    
+    /**
+     * returns the filetype being processed, Checkfree or Metavante
+     * @return
+     */
+    public String getFileType() {
+    	return fileType.trim();
     }
 }

@@ -67,7 +67,6 @@ public class LineItem
             throw new Exception("Line #" + LineNum
                                 + ": Incorrect number of data fields: " + csvLine.length
                                 + " expecting 17");
-
         MapID = csvLine[0];
         MerchantName = csvLine[1];
 
@@ -79,7 +78,7 @@ public class LineItem
         CustCity = csvLine[6];
         CustState = csvLine[7];
         CustZip = csvLine[8];
-        
+               
         PaymentDescription = csvLine[9];
         try { PaymentAmount = Double.parseDouble(csvLine[10]); }
         catch (NumberFormatException e) {
@@ -88,10 +87,9 @@ public class LineItem
                     + csvLine[9] + "\"");
         }
         PaymentDate = GetDate(csvLine[11], LineNum);
-
+               
         ReturnReasonCode = csvLine[12];
         ReturnDate = GetDate(csvLine[13], LineNum);
-        
         try { AdjustmentAmount = Double.parseDouble(csvLine[14]); }
         catch (NumberFormatException e) {
             throw new Exception("Line #" + LineNum
@@ -101,8 +99,7 @@ public class LineItem
         OriginalPaymentDate = GetDate(csvLine[15], LineNum);
 
         CSV_Filename = csvLine[16];
-
-
+       
         boolean isCorrected = false;
         // NOTE: attempting to parse the account number must be last
         //       because the CorrectionDialog calls toString() on this object
@@ -292,5 +289,13 @@ public class LineItem
     public int getCustAcctNum()
     {
         return CustAcctNum;
+    }
+    
+    /**
+     * returns the expected length of a line item 
+     * @return
+     */
+    public static int getExpectedLength() {
+    	return ImportHeader.length; 
     }
 }
