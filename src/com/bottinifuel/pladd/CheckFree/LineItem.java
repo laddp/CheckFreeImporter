@@ -2,6 +2,21 @@
  * Created on Jan 24, 2006 by pladd
  *
  */
+/************************************************************************
+* Change Log:
+* 
+*   Date         Description                                        Pgmr
+*  ------------  ------------------------------------------------   -----
+*  Dec 16, 2013  New file format coming from Checkfree.             carlonc
+*  version 3     It no longer has the "CSV Filename"
+*                column. It has been commented out in
+*                String [] ImportHeader.
+*                Additional changes include: 
+*                Changed Customer Address to Customer_Address
+*                Changed Customer State to Customer_State
+*                Changed Return Date to Return_Date                  
+*                Look for comment 121613   
+************************************************************************/
 package com.bottinifuel.pladd.CheckFree;
 
 import java.text.DateFormat;
@@ -35,38 +50,39 @@ public class LineItem
     public final double   AdjustmentAmount;
     public final Calendar OriginalPaymentDate;
 
-    public final String   CSV_Filename;
+    public final String   CSV_Filename;  
 
-    public final boolean  Corrected;
+	public final boolean  Corrected;
     public final boolean  AutoCorrected;
     
     private final static String [] ImportHeader = {"MapID",
                                                  "Merchant Name",
                                                  "Customer Account Number",
                                                  "Customer Name",
-                                                 "Customer Address",
+                                                 "Customer_Address", // 121613
                                                  "Customer Address2",
                                                  "Customer City",
-                                                 "Customer State",
+                                                 "Customer_State", // 121613
                                                  "Customer Zip Code",
                                                  "Payment Description",
                                                  "Payment Amount",
                                                  "Payment Date",
                                                  "Return Reason Code",
-                                                 "Return Date",
+                                                 "Return_Date",  // 121613
                                                  "Adjustment Amount",
-                                                 "Original Payment Date",
-                                                 "CSV Filename" };
+                                                 "Original Payment Date" };
+                                                 //"CSV Filename" }; commented out 12/16/2013};
 
     
     public LineItem(String [] csvLine, int lineNum, CheckFreeImporter cf) throws Exception, DropException
     {
         LineNum = lineNum;
+        
 
-        if (csvLine.length != 17)
+        if (csvLine.length != 16)  // changed from 17 to 16 for 121613
             throw new Exception("Line #" + LineNum
                                 + ": Incorrect number of data fields: " + csvLine.length
-                                + " expecting 17");
+                                + " expecting 16");
         MapID = csvLine[0];
         MerchantName = csvLine[1];
 
@@ -98,8 +114,9 @@ public class LineItem
         }
         OriginalPaymentDate = GetDate(csvLine[15], LineNum);
 
-        CSV_Filename = csvLine[16];
-       
+        //CSV_Filename = cf.getcsvLine[16]; comment out 121613
+        CSV_Filename = cf.getCSVFileName(); // replaced with this 
+              
         boolean isCorrected = false;
         // NOTE: attempting to parse the account number must be last
         //       because the CorrectionDialog calls toString() on this object
@@ -147,6 +164,8 @@ public class LineItem
     private Calendar GetDate(String s, int l) throws Exception, NumberFormatException
     {
         if (s.compareTo("0") == 0)
+            return null;
+        else if (s.compareTo("") == 0) //121613
             return null;
         
         Calendar rc = Calendar.getInstance();
@@ -266,7 +285,7 @@ public class LineItem
             else
                 date = "0";
             msg += ImportHeader[i++] + ": " + date               + "\n";
-            msg += ImportHeader[i++] + ": " + CSV_Filename       + "\n";
+            //msg += ImportHeader[i++] + ": " + CSV_Filename       + "\n"; comment out 121613
         }
         
         public String toString()
@@ -298,4 +317,6 @@ public class LineItem
     public static int getExpectedLength() {
     	return ImportHeader.length; 
     }
+   
+ 
 }

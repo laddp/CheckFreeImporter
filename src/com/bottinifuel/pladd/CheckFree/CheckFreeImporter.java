@@ -8,7 +8,15 @@
 *   Date         Description                                        Pgmr
 *  ------------  ------------------------------------------------   -----
 *  Apr 12,2013   Version 2 Added Metavante csv file.                carlonc 
-*************************************************************************/
+*  Dec 16, 2013  New file format coming from Checkfree.             carlonc
+*  version 3     It no longer has the "CSV Filename"
+*                column. 
+*                Additional changes include: 
+*                Changed Customer Address to Customer_Address
+*                Changed Customer State to Customer_State
+*                Changed Return Date to Return_Date
+*                Look for comment 121613
+************************************************************************/
 package com.bottinifuel.pladd.CheckFree;
 
 import java.awt.BorderLayout;
@@ -80,7 +88,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
 
     private static String CheckFreeDirectory;
     private        String fileType = "";
-    private static String version  = "v2.0"; 
+    private static String version  = "v3.0"; 
     		
     private JFileChooser FileChooser;
 
@@ -247,6 +255,8 @@ public class CheckFreeImporter extends JFrame implements ActionListener
         for (int i = 0; i < expected.length; i++)
         {
             if (expected[i].compareTo(header[i]) != 0) {
+            	System.out.println("expected[i]="+expected[i]);
+            	System.out.println("header[i]="+header[i]);
             	return false;
             }    
         }
@@ -339,7 +349,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
             if (lineNumber == 1)
             {
             	if (fileType.equals(FileTypes.CHECKFREE)) {
-                   if (!LineItem.VerifyImportFormat(nextLine))
+            	   if (!LineItem.VerifyImportFormat(nextLine))
                        throw new Exception(FileTypes.CHECKFREE+" import format mismatch!");
             	}
             	else if (fileType.equals(FileTypes.METAVANTE)) {
@@ -350,7 +360,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
             else
             {
             	try {
-                	LineItem i = null;
+            		LineItem i = null;
                 	if (fileType.equals(FileTypes.CHECKFREE)) {
                        i = new LineItem(nextLine, lineNumber, this);
                        Items.add(i);
@@ -552,7 +562,7 @@ public class CheckFreeImporter extends JFrame implements ActionListener
         else if (event.equals("run"))
         {
             try {
-                ReadAccounts(); 
+            	ReadAccounts(); 
                 ReadCorrections();
                 ReadImports();
                 LocateNewAccounts();
@@ -665,5 +675,16 @@ public class CheckFreeImporter extends JFrame implements ActionListener
      */
     public String getFileType() {
     	return fileType.trim();
+    }
+    
+    /**
+     * Gets the CSV file name
+     * @return
+     */
+    // new method for 121613
+    public String getCSVFileName() {
+    	if (CSVimport != null)
+    	   return CSVimport.getAbsolutePath();
+    	return "";
     }
 }

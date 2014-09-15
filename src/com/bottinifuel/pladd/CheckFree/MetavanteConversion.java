@@ -10,6 +10,10 @@
 *   Date         Description                                        Pgmr
 *  ------------  ------------------------------------------------   -----
 *  Mar 05,2013   New class for version 2.0.                         carlonc 
+*  Dec 16, 2013  New file format coming from Checkfree.             carlonc
+*  version 3     It no longer has the "CSV Filename"
+*                column. 
+*                Look for comment 121613  
 *************************************************************************/
 package com.bottinifuel.pladd.CheckFree;
 
@@ -88,13 +92,17 @@ public class MetavanteConversion {
             
             lineItem[15] = "0";                       // Original Payment Date, not in Metavante 
             
-            int pos = fileName.lastIndexOf(File.separator);
-            try {
-               lineItem[16] = fileName.substring(pos+1);  // fileName
-            }
-            catch (IndexOutOfBoundsException e) {
-            	lineItem[16] = fileName;	
-            }
+            //***********************************************************
+            // Block of code commented out for 121613 
+            //int pos = fileName.lastIndexOf(File.separator);
+            //try {
+            //   lineItem[16] = fileName.substring(pos+1);  // fileName
+            //}
+            //catch (IndexOutOfBoundsException e) {
+            //	lineItem[16] = fileName;	
+            //}
+            //*************** end of 121613 change ***********************  
+            
             // do return date last
             if (csvLine[3].trim().equals(""))
                 lineItem[13] = "0";                   // ReturnDate  
